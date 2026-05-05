@@ -332,15 +332,20 @@ export default function LiveSessionPlayer() {
       return;
     }
 
-    // Only resume from saved progress if the session was already in-progress ("live").
-    // A fresh "upcoming" or "missed" session always starts from the beginning of its segment.
+    // Record the wall-clock start of the session so we can derive the live position.
+    sessionStartMsRef.current = sessionDateTime.getTime();
+
+    // Compute where the live class currently is based on wall-clock time.
+    const elapsedSecs = Math.max(0, (Date.now() - sessionDateTime.getTime()) / 1000);
+    const livePos = session.startOffset + Math.min(elapsedSecs, session.durationSeconds);
+
+    // If the user is resuming a session they already started ("live"), pick up where they
+    // left off personally (they can seek forward to the live position from there).
+    // For a fresh join ("upcoming" / "missed"), land directly at the current live position.
     const startAt =
       session.status === "live"
         ? session.startOffset + (session.watchedSeconds || 0)
-        : session.startOffset;
-
-    // Record the wall-clock start of the session so we can derive the live position.
-    sessionStartMsRef.current = sessionDateTime.getTime();
+        : livePos;
 
     playerRef.current = new window.YT.Player(`yt-player-${session.id}`, {
       videoId: lecture.videoId,
