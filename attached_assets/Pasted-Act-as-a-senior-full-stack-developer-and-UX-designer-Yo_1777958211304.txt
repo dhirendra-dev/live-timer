@@ -1,0 +1,85 @@
+Act as a senior full-stack developer and UX designer.
+
+Your task is to build a STATIC website (no backend required, can use localStorage) that helps students stay disciplined while studying from recorded YouTube lectures by simulating LIVE scheduled classes.
+
+🎯 Core Idea:
+Students paste a YouTube video (e.g., a 12-hour Thermodynamics lecture) and break it into scheduled "live class sessions" across multiple days and times.
+
+---
+
+🧩 FEATURES TO IMPLEMENT:
+
+1. 📥 Video Input
+- Input field to paste YouTube URL
+- Extract video duration automatically (use YouTube iframe API or metadata workaround)
+- Display total duration
+
+2. 📅 Smart Scheduler
+- Allow user to divide the video into multiple sessions
+- Each session includes:
+  - Date
+  - Start time
+  - Duration (e.g., 2 hours, 1.5 hours)
+- Ensure total scheduled duration does not exceed video length
+- Show remaining unscheduled duration
+
+3. ⏱️ Live Class Simulation Mode
+- At scheduled time, session becomes "LIVE"
+- Lock forward seeking (user cannot skip ahead)
+- Allow pause, but track it
+- Resume from last watched timestamp only
+- Show countdown timer before session starts
+
+4. 🎥 Video Player
+- Embedded YouTube player
+- Auto-start at correct timestamp for each session
+- Restrict playback beyond session duration
+
+5. 🔔 Reminder System
+- Browser notifications before session starts (e.g., 10 mins before)
+- Optional alarm sound
+
+6. 📊 Progress Tracking
+- Show completed sessions
+- Show % of lecture completed
+- Track streak (days followed schedule)
+
+7. 💾 Data Persistence
+- Save all schedules and progress in localStorage
+- Allow exporting/importing schedule as JSON
+
+8. 📱 UI/UX
+- Clean student-friendly UI
+- Calendar view + list view
+- Progress bar for full lecture
+- Highlight "Today's session"
+
+---
+
+🛠️ TECH STACK:
+- HTML, CSS (Tailwind preferred), JavaScript
+- Use YouTube Iframe API
+- No backend / database
+- Must work offline after first load (PWA optional)
+
+---
+
+⚠️ RULES:
+- Do NOT allow user to skip ahead of scheduled portion
+- Enforce discipline: simulate real class environment
+- Keep everything lightweight and fast
+
+---
+
+✨ BONUS FEATURES:
+- Dark mode
+- Motivational streak messages
+- Weekly timetable view
+- Multiple lectures support
+
+---
+
+📦 OUTPUT:
+- Provide complete working code (HTML + CSS + JS in one file or modular files)
+- Code should be clean, commented, and beginner-friendly
+- Include instructions to run locally
