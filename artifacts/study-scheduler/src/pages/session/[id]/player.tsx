@@ -278,14 +278,19 @@ export default function LiveSessionPlayer() {
   const [countdown, setCountdown] = useState<number | null>(null);
   const [isEarly, setIsEarly] = useState(false);
 
+  // livePosition = startOffset + min(wall-clock seconds since session start, durationSeconds)
+  // This advances in real time whether the user is watching or not — exactly like a live class.
+  const [livePosition, setLivePosition] = useState(0);
+
   const playerRef = useRef<any>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const intervalRef = useRef<number | null>(null);
   const controlsTimerRef = useRef<number | null>(null);
-  const highestTimeRef = useRef<number>(0);
   const mountedRef = useRef(true);
   const lastSaveRef = useRef(0);
   const skipWarningTimerRef = useRef<number | null>(null);
+  // Wall-clock start of the session (ms). Used to derive the live position.
+  const sessionStartMsRef = useRef<number>(0);
 
   // Compute session start datetime once
   const sessionDateTime = session
@@ -333,7 +338,9 @@ export default function LiveSessionPlayer() {
       session.status === "live"
         ? session.startOffset + (session.watchedSeconds || 0)
         : session.startOffset;
-    highestTimeRef.current = startAt;
+
+    // Record the wall-clock start of the session so we can derive the live position.
+    sessionStartMsRef.current = sessionDateTime.getTime();
 
     playerRef.current = new window.YT.Player(`yt-player-${session.id}`, {
       videoId: lecture.videoId,
@@ -376,7 +383,7 @@ export default function LiveSessionPlayer() {
       },
     });
 
-    // Polling interval for discipline enforcement
+    // Polling interval for live-clock enforcement
     intervalRef.current = window.setInterval(() => {
       const p = playerRef.current;
       if (!p?.getCurrentTime || !mountedRef.current) return;
@@ -384,9 +391,16 @@ export default function LiveSessionPlayer() {
         const ct: number = p.getCurrentTime();
         setCurrentTime(ct);
 
-        // Enforce forward-seek lock
-        if (ct > highestTimeRef.current + 2) {
-          p.seekTo(highestTimeRef.current, true);
+        // Compute live position: how far the class has progressed on the wall clock.
+        // The user may seek freely up to this point — pausing "saves up" seekable time,
+        // just like stepping out of a live class and rejoining.
+        const elapsedSecs = Math.max(0, (Date.now() - sessionStartMsRef.current) / 1000);
+        const livePosAbs = session.startOffset + Math.min(elapsedSecs, session.durationSeconds);
+        setLivePosition(livePosAbs);
+
+        // Enforce: cannot seek beyond where the live class currently is
+        if (ct > livePosAbs + 1) {
+          p.seekTo(livePosAbs, true);
           if (!skipWarningTimerRef.current) {
             setSkipWarning(true);
             skipWarningTimerRef.current = window.setTimeout(() => {
@@ -394,8 +408,6 @@ export default function LiveSessionPlayer() {
               skipWarningTimerRef.current = null;
             }, 2000);
           }
-        } else {
-          highestTimeRef.current = Math.max(highestTimeRef.current, ct);
         }
 
         // Save progress to localStorage (throttled to every 5s)
@@ -441,11 +453,14 @@ export default function LiveSessionPlayer() {
   const handleSeek = useCallback((t: number) => {
     const p = playerRef.current;
     if (!p) return;
-    const clamped = Math.min(t, highestTimeRef.current);
+    // Clamp to live position — you can seek anywhere the class has already "aired"
+    const elapsedSecs = Math.max(0, (Date.now() - sessionStartMsRef.current) / 1000);
+    const liveAbs = (session?.startOffset ?? 0) + Math.min(elapsedSecs, session?.durationSeconds ?? 0);
+    const clamped = Math.min(t, liveAbs);
     const final = Math.max(session?.startOffset ?? 0, clamped);
     p.seekTo(final, true);
     setCurrentTime(final);
-  }, [session?.startOffset]);
+  }, [session?.startOffset, session?.durationSeconds]);
 
   const handleVolume = useCallback((v: number) => {
     setVolume(v);
@@ -498,7 +513,8 @@ export default function LiveSessionPlayer() {
 
   const sessionDuration = session.durationSeconds;
   const relativeTime = Math.max(0, currentTime - session.startOffset);
-  const relativeMax = Math.max(0, highestTimeRef.current - session.startOffset);
+  // relativeMax = how far the live class has progressed (wall-clock), not how far user has watched
+  const relativeMax = Math.max(0, livePosition - session.startOffset);
   const progressPct = sessionDuration > 0 ? (relativeTime / sessionDuration) * 100 : 0;
 
   // ── Render: Early / locked ──
