@@ -327,7 +327,12 @@ export default function LiveSessionPlayer() {
       return;
     }
 
-    const startAt = session.startOffset + (session.watchedSeconds || 0);
+    // Only resume from saved progress if the session was already in-progress ("live").
+    // A fresh "upcoming" or "missed" session always starts from the beginning of its segment.
+    const startAt =
+      session.status === "live"
+        ? session.startOffset + (session.watchedSeconds || 0)
+        : session.startOffset;
     highestTimeRef.current = startAt;
 
     playerRef.current = new window.YT.Player(`yt-player-${session.id}`, {
