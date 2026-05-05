@@ -137,7 +137,14 @@ export default function LectureDetail() {
                       {session.status === 'completed' ? 'Review' : 'Open'}
                     </Button>
                   </Link>
-                  <Button variant="ghost" size="icon" onClick={() => deleteSession(session.id)}>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    disabled={session.status === "live"}
+                    title={session.status === "live" ? "Cannot delete a session in progress" : "Delete session"}
+                    onClick={() => deleteSession(session.id)}
+                    data-testid={`button-delete-session-${session.id}`}
+                  >
                     <Trash2 className="h-4 w-4 text-destructive" />
                   </Button>
                 </div>
